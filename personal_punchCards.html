@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Personal Punch Cards</title>
+  <meta name="theme-color" content="#fef8e7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+  <link rel="manifest" href="manifest.json?v=6" />
+
+  <!-- Flatpickr CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+
+  <style>
+    :root {
+      --bg-card: #ffffff;
+      --line-blue: #3b82f6;
+      --line-red: #ffb3b3;
+      --text-ink: #2b2b2b;
+      --text-muted: #888888;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+    }
+
+    body {
+      background-color: #d1d5db;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 10px;
+    }
+
+    .card-container {
+      width: 100%;
+      max-width: 500px;
+      background: var(--bg-card);
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #dcd6cd;
+    }
+
+    .card-header {
+      padding: 8px 12px;
+      border-bottom: 2px solid var(--line-red);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      background: rgba(255, 179, 179, 0.1);
+    }
+
+    .date-selector {
+      border: none;
+      background: transparent;
+      font-weight: bold;
+      font-size: 0.95rem;
+      color: var(--text-ink);
+      outline: none;
+      min-height: 28px;
+      cursor: pointer;
+      width: 110px;
+      flex-shrink: 0;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .star-badge {
+      font-size: 1.2rem;
+      filter: grayscale(100%);
+      opacity: 0.3;
+      transition: all 0.3s ease;
+      margin-left: 2px;
+    }
+
+    .star-badge.earned {
+      filter: grayscale(0%);
+      opacity: 1;
+      transform: scale(1.2);
+    }
+
+    .action-btn {
+      font-size: 0.7rem;
+      padding: 3px 5px;
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      white-space: nowrap;
+    }
+
+    .today-btn {
+      display: none;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e0d8;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      background: #eae5dc;
+      border: none;
+      font-weight: bold;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: var(--bg-card);
+      color: var(--text-ink);
+      border-bottom: 2px solid var(--text-ink);
+    }
+
+    .card-body {
+      flex: 1;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .view-pane {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+    }
+
+    .view-pane.active {
+      display: flex;
+    }
+
+    .columns {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      flex: 1;
+      width: 100%;
+    }
+
+    .column {
+      background: linear-gradient(to bottom,
+          transparent 0px,
+          transparent 27px,
+          var(--line-blue) 27px,
+          var(--line-blue) 28px);
+      background-size: 100% 28px;
+      line-height: 28px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .column-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: bold;
+      color: #718096;
+      border-bottom: 1px solid var(--line-blue);
+      margin-bottom: 4px;
+      height: 24px;
+      line-height: 24px;
+    }
+
+    .task-item {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      padding: 0 4px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      min-width: 0;
+    }
+
+    .task-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .task-label {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .task-item.completed .task-label {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .copy-btn {
+      font-size: 0.7rem;
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      padding: 0 4px;
+      height: 20px;
+      line-height: 18px;
+      color: var(--text-ink);
+      flex-shrink: 0;
+    }
+
+    .add-task-form {
+      margin-top: 6px;
+    }
+
+    .add-task-form input {
+      width: 100%;
+      height: 26px;
+      border: none;
+      border-bottom: 1px dashed var(--text-muted);
+      background: transparent;
+      outline: none;
+      font-size: 0.85rem;
+      padding: 0 4px;
+    }
+
+    textarea.notes-area {
+      width: 100%;
+      height: 100%;
+      min-height: 250px;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      font-family: monospace;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      color: var(--text-ink);
+    }
+
+    /* Flatpickr Custom Day Indicators & Square Grid Overrides */
+    .flatpickr-day {
+      border-radius: 0 !important;
+      border: 1px solid #d1d5db !important;
+      box-sizing: border-box;
+    }
+
+    .flatpickr-day.today,
+    .flatpickr-day.selected {
+      border-radius: 0 !important;
+    }
+
+    .flatpickr-day.has-indicator {
+      position: relative;
+    }
+
+    .day-indicator {
+      position: absolute;
+      bottom: 2px;
+      right: 4px;
+      font-size: 0.65rem;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .day-indicator.dot {
+      width: 10px;
+      height: 10px;
+      background-color: #3b82f6;
+      border-radius: 50%;
+      bottom: 3px;
+      left: 50%;
+      transform: translateX(60%);
+    }
+
+    .day-indicator.exclamation {
+      color: #ef4444;
+      font-weight: bold;
+      font-size: 1.00rem;
+      right: 0px;
+      bottom: 0px;
+    }
+
+    .day-indicator.star {
+      font-size: 1.00rem;
+      right: -2px;
+      bottom: 2px;
+    }
+
+    .flatpickr-day.selected .day-indicator.dot {
+      background-color: #ffffff;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card-container">
+    <div class="card-header">
+      <input type="text" id="datePicker" class="date-selector" readonly />
+      <div class="header-right">
+        <button id="restoreBtn" class="action-btn" onclick="triggerRestore()">Restore</button>
+        <button id="backupBtn" class="action-btn" onclick="triggerBackup()">Backup</button>
+        <button id="todayBtn" class="action-btn today-btn" onclick="jumpToToday()">Jump to Today</button>
+        <span class="star-badge" id="starBadge">⭐</span>
+      </div>
+    </div>
+
+    <input type="file" id="restoreFileInput" accept=".json" style="display: none;" onchange="importData(event)" />
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('front')">FRONT (Commitments)</button>
+      <button class="tab" onclick="switchTab('back')">BACK (Notes/Ideas)</button>
+    </div>
+
+    <div class="card-body">
+      <div id="paneFront" class="view-pane active">
+        <div class="columns">
+          <div class="column">
+            <div class="column-title">Work</div>
+            <div id="workList"></div>
+            <form class="add-task-form" id="workForm" onsubmit="addTask(event, 'work')">
+              <input type="text" id="workInput" placeholder="+ Add Work Task" autocomplete="off" />
+            </form>
+          </div>
+
+          <div class="column">
+            <div class="column-title">Personal</div>
+            <div id="personalList"></div>
+            <form class="add-task-form" id="personalForm" onsubmit="addTask(event, 'personal')">
+              <input type="text" id="personalInput" placeholder="+ Add Personal Task" autocomplete="off" />
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div id="paneBack" class="view-pane">
+        <textarea id="notesArea" class="notes-area"
+          placeholder="Scratchpad for phone numbers, code comments, or ideas..." oninput="saveNotes()"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flatpickr JS -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+  <script>
+    const getTodayKey = () => {
+      const now = new Date();
+      const offset = now.getTimezoneOffset();
+      const localDate = new Date(now.getTime() - (offset * 60 * 1000));
+      return localDate.toISOString().split('T')[0];
+    };
+
+    let todayKey = getTodayKey();
+    let selectedKey = todayKey;
+    let cardData = { work: [], personal: [], notes: "" };
+    let pickerInstance = null;
+
+    function initPicker() {
+      pickerInstance = flatpickr("#datePicker", {
+        dateFormat: "Y-m-d",
+        defaultDate: selectedKey,
+        disableMobile: true,
+        onChange: function (selectedDates, dateStr) {
+          if (dateStr) loadCard(dateStr);
+        },
+        onDayCreate: function (dObj, dStr, fp, dayElem) {
+          const dayDate = dayElem.dateObj;
+          const offset = dayDate.getTimezoneOffset();
+          const localDay = new Date(dayDate.getTime() - (offset * 60 * 1000));
+          const key = localDay.toISOString().split('T')[0];
+
+          const stored = localStorage.getItem(`punchcard_${key}`);
+          if (!stored) return;
+
+          try {
+            const data = JSON.parse(stored);
+            const work = data.work || [];
+            const personal = data.personal || [];
+            const allTasks = [...work, ...personal];
+
+            if (allTasks.length === 0) return;
+
+            const hasExclamation = allTasks.some(task => task.text.includes('!'));
+            const allCompleted = allTasks.every(task => task.completed);
+
+            const indicator = document.createElement('span');
+            indicator.className = 'day-indicator';
+            dayElem.classList.add('has-indicator');
+
+            if (hasExclamation) {
+              indicator.innerText = '!';
+              indicator.classList.add('exclamation');
+            } else if (allCompleted) {
+              indicator.innerText = '⭐';
+              indicator.classList.add('star');
+            } else {
+              indicator.classList.add('dot');
+            }
+
+            dayElem.appendChild(indicator);
+          } catch (e) {
+            console.error("Error parsing day indicators:", e);
+          }
+        }
+      });
+    }
+
+    function loadCard(dateKey) {
+      selectedKey = dateKey;
+
+      if (pickerInstance) {
+        pickerInstance.setDate(selectedKey, false);
+      }
+
+      const todayBtn = document.getElementById('todayBtn');
+      if (todayBtn) {
+        todayBtn.style.display = (selectedKey === todayKey) ? 'none' : 'inline-block';
+      }
+
+      const stored = localStorage.getItem(`punchcard_${selectedKey}`);
+      cardData = stored ? JSON.parse(stored) : { work: [], personal: [], notes: "" };
+      document.getElementById('notesArea').value = cardData.notes || "";
+      render();
+    }
+
+    function save() {
+      localStorage.setItem(`punchcard_${selectedKey}`, JSON.stringify(cardData));
+      if (pickerInstance) pickerInstance.redraw();
+      render();
+    }
+
+    function jumpToToday() {
+      todayKey = getTodayKey();
+      loadCard(todayKey);
+    }
+
+    function addTask(e, category) {
+      e.preventDefault();
+      const input = document.getElementById(`${category}Input`);
+      const val = input.value.trim();
+      if (!val) return;
+
+      cardData[category].push({ text: val, completed: false });
+      input.value = "";
+      save();
+    }
+
+    function toggleTask(category, index) {
+      cardData[category][index].completed = !cardData[category][index].completed;
+      save();
+    }
+
+    function editTask(category, index) {
+      const currentText = cardData[category][index].text;
+      const updatedText = prompt("Edit task (leave blank to delete):", currentText);
+
+      if (updatedText !== null) {
+        const trimmed = updatedText.trim();
+        if (trimmed === "") {
+          cardData[category].splice(index, 1);
+        } else {
+          cardData[category][index].text = trimmed;
+        }
+        save();
+      }
+    }
+
+    function copyToToday(category, text, event) {
+      event.stopPropagation();
+      let todayData = JSON.parse(localStorage.getItem(`punchcard_${todayKey}`)) || { work: [], personal: [], notes: "" };
+      todayData[category].push({ text: text, completed: false });
+      localStorage.setItem(`punchcard_${todayKey}`, JSON.stringify(todayData));
+      if (pickerInstance) pickerInstance.redraw();
+      alert(`Copied "${text}" to today's card!`);
+    }
+
+    function saveNotes() {
+      cardData.notes = document.getElementById('notesArea').value;
+      localStorage.setItem(`punchcard_${selectedKey}`, JSON.stringify(cardData));
+    }
+
+    function triggerBackup() {
+      const confirmBackup = confirm("Would you like to export a backup of all your punch card data?");
+      if (confirmBackup) {
+        exportAllData();
+      }
+    }
+
+    function exportAllData() {
+      const backupData = {};
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('punchcard_')) {
+          try {
+            backupData[key] = JSON.parse(localStorage.getItem(key));
+          } catch (e) {
+            backupData[key] = localStorage.getItem(key);
+          }
+        }
+      }
+
+      const jsonString = JSON.stringify(backupData, null, 2);
+      const fileName = `punchcard_backup_${getTodayKey()}.json`;
+
+      // Fallback direct download link creation
+      const downloadFallback = () => {
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+
+      try {
+        const file = new File([jsonString], fileName, { type: 'application/json' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({
+            files: [file],
+            title: 'Personal Punch Card Backup',
+            text: 'Backup data export for Personal Punch Cards.'
+          }).catch(err => {
+            console.log('Sharing canceled or failed, using download fallback:', err);
+            downloadFallback();
+          });
+        } else {
+          downloadFallback();
+        }
+      } catch (e) {
+        downloadFallback();
+      }
+    }
+
+    function triggerRestore() {
+      const confirmRestore = confirm("Restoring from a file will replace all your current punchcard data. Do you want to continue?");
+      if (confirmRestore) {
+        document.getElementById('restoreFileInput').click();
+      }
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const importedData = JSON.parse(e.target.result);
+
+          if (typeof importedData !== 'object' || importedData === null) {
+            alert('Invalid backup file format.');
+            return;
+          }
+
+          // Clear existing punchcard data
+          const keysToRemove = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('punchcard_')) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach(k => localStorage.removeItem(k));
+
+          // Restore imported keys
+          let restoredCount = 0;
+          Object.entries(importedData).forEach(([key, val]) => {
+            if (key.startsWith('punchcard_')) {
+              const valStr = typeof val === 'string' ? val : JSON.stringify(val);
+              localStorage.setItem(key, valStr);
+              restoredCount++;
+            }
+          });
+
+          alert(`Successfully restored ${restoredCount} card(s)!`);
+
+          // Reload current card and calendar indicators
+          loadCard(selectedKey);
+          if (pickerInstance) pickerInstance.redraw();
+
+        } catch (err) {
+          alert('Failed to parse the backup JSON file. Please ensure it is a valid export.');
+          console.error('Import Error:', err);
+        } finally {
+          event.target.value = ''; // Reset input selection
+        }
+      };
+
+      reader.readAsText(file);
+    }
+
+    function attachLongPress(element, category, index) {
+      let timer = null;
+      let isLongPress = false;
+
+      const start = () => {
+        isLongPress = false;
+        timer = setTimeout(() => {
+          isLongPress = true;
+          editTask(category, index);
+        }, 500);
+      };
+
+      const clear = () => {
+        if (timer) clearTimeout(timer);
+      };
+
+      element.onpointerdown = start;
+      element.onpointerup = () => {
+        clear();
+        if (!isLongPress) {
+          toggleTask(category, index);
+        }
+      };
+      element.onpointerleave = clear;
+      element.onpointercancel = clear;
+    }
+
+    function render() {
+      ['work', 'personal'].forEach(cat => {
+        const container = document.getElementById(`${cat}List`);
+        container.innerHTML = "";
+        cardData[cat].forEach((task, idx) => {
+          const div = document.createElement('div');
+          div.className = `task-item ${task.completed ? 'completed' : ''}`;
+
+          const leftDiv = document.createElement('div');
+          leftDiv.className = 'task-left';
+
+          const check = document.createElement('span');
+          check.innerText = task.completed ? '✓' : '•';
+
+          const label = document.createElement('span');
+          label.className = 'task-label';
+          label.innerText = task.text;
+
+          leftDiv.appendChild(check);
+          leftDiv.appendChild(label);
+          div.appendChild(leftDiv);
+
+          attachLongPress(leftDiv, cat, idx);
+
+          if (selectedKey < todayKey && !task.completed) {
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.innerText = '+ Today';
+            copyBtn.onclick = (e) => copyToToday(cat, task.text, e);
+            div.appendChild(copyBtn);
+          }
+
+          container.appendChild(div);
+        });
+      });
+
+      const totalTasks = cardData.work.length + cardData.personal.length;
+      const completedTasks = cardData.work.filter(t => t.completed).length + cardData.personal.filter(t => t.completed).length;
+      const starBadge = document.getElementById('starBadge');
+
+      if (totalTasks > 0 && totalTasks === completedTasks) {
+        starBadge.classList.add('earned');
+      } else {
+        starBadge.classList.remove('earned');
+      }
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('active'));
+
+      if (tab === 'front') {
+        document.querySelectorAll('.tab')[0].classList.add('active');
+        document.getElementById('paneFront').classList.add('active');
+      } else {
+        document.querySelectorAll('.tab')[1].classList.add('active');
+        document.getElementById('paneBack').classList.add('active');
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initPicker();
+      loadCard(todayKey);
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => { });
+    }
+  </script>
+</body>
+
+</html>
