@@ -2,7 +2,7 @@
   "name": "personal_punchCards",
   "short_name": "personal_punchCards",
   "id": "/personal_punchcards/",
-  "start_url": "/personal_punchcards/personal_punchCards.html",
+  "start_url": "/personal_punchcards/personal_punchcards.html",
   "scope": "/personal_punchcards/",
   "display": "standalone",
   "background_color": "#000000",
